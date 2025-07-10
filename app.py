@@ -200,7 +200,7 @@ def check_stop_requested():
         return False
 
 def modified_translate_button_click(
-    translate_files_func, files, model, src_lang, dst_lang, 
+    translate_files_func, files, model, src_lang, dst_lang,
     use_online, api_key, max_retries, max_token, thread_count, excel_mode_2, word_bilingual_mode, glossary_name,
     session_lang, continue_mode=False, progress=gr.Progress(track_tqdm=True)
 ):
@@ -209,6 +209,9 @@ def modified_translate_button_click(
     
     labels = LABEL_TRANSLATIONS.get(session_lang, LABEL_TRANSLATIONS["en"])
     stop_text = labels.get("Stop Translation", "Stop Translation")
+
+    # Load stored API key if not provided
+    api_key = api_key or get_api_key()
     
     # Reset UI and stop flag
     output_file_update = gr.update(visible=False)
@@ -286,7 +289,8 @@ def read_system_config():
             "default_thread_count_online": 2,
             "default_thread_count_offline": 4,
             "default_src_lang": "English",
-            "default_dst_lang": "English"
+            "default_dst_lang": "English",
+            "api_key": ""
         }
 
 def write_system_config(config):
@@ -327,6 +331,18 @@ def update_thread_count(thread_count):
         config["default_thread_count_offline"] = thread_count
     write_system_config(config)
     return thread_count
+
+def update_api_key(api_key):
+    """Update system config with new API key"""
+    config = read_system_config()
+    config["api_key"] = api_key
+    write_system_config(config)
+    return api_key
+
+def get_api_key():
+    """Retrieve API key from system config"""
+    config = read_system_config()
+    return config.get("api_key", "")
 
 def update_excel_mode(excel_mode_2):
     """Update system config with new Excel mode setting"""
@@ -665,7 +681,6 @@ def set_labels(session_lang: str):
         glossary_choice: gr.update(label=labels.get("Glossary", "Glossary")),
         max_retries_slider: gr.update(label=labels["Max Retries"]),
         thread_count_slider: gr.update(label=labels["Thread Count"]),
-        api_key_input: gr.update(label=labels["API Key"]),
         file_input: gr.update(label=file_upload_label),
         output_file: gr.update(label=labels["Download Translated File"]),
         status_message: gr.update(label=labels["Status Message"]),
@@ -682,7 +697,7 @@ def set_labels(session_lang: str):
 #-------------------------------------------------------------------------
 
 def update_model_list_and_api_input(use_online):
-    """Switch model options and show/hide API Key, update config"""
+    """Switch model options and update config"""
     # Update system config with new online mode
     update_online_mode(use_online)
     config = read_system_config()
@@ -697,7 +712,6 @@ def update_model_list_and_api_input(use_online):
             default_online_value = online_models[0] if online_models else None
         return (
             gr.update(choices=online_models, value=default_online_value),
-            gr.update(visible=True, value=""),
             gr.update(value=thread_count)
         )
     else:
@@ -707,7 +721,6 @@ def update_model_list_and_api_input(use_online):
             default_local_value = local_models[0] if local_models else None
         return (
             gr.update(choices=local_models, value=default_local_value),
-            gr.update(visible=False, value=""),
             gr.update(value=thread_count)
         )
 
@@ -860,6 +873,9 @@ def translate_files(
     
     labels = LABEL_TRANSLATIONS.get(session_lang, LABEL_TRANSLATIONS["en"])
     stop_text = labels.get("Stop Translation", "Stop Translation")
+
+    # Load stored API key if not provided
+    api_key = api_key or get_api_key()
     
     if not files:
         return gr.update(value=None, visible=False), "Please select file(s) to translate.", gr.update(value=stop_text, interactive=False)
@@ -1135,14 +1151,14 @@ with gr.Blocks(
     )
 
     # Create main interface
-    (api_key_input, file_input, output_file, status_message, 
+    (file_input, output_file, status_message,
      translate_button, continue_button, stop_button) = create_main_interface(config)
 
     # Event handlers
     use_online_model.change(
         update_model_list_and_api_input,
         inputs=use_online_model,
-        outputs=[model_choice, api_key_input, thread_count_slider]
+        outputs=[model_choice, thread_count_slider]
     )
     
     # Add LAN mode
@@ -1208,8 +1224,8 @@ with gr.Blocks(
     ).then(
         partial(modified_translate_button_click, translate_files),
         inputs=[
-            file_input, model_choice, src_lang, dst_lang, 
-            use_online_model, api_key_input, max_retries_slider, max_token_state,
+            file_input, model_choice, src_lang, dst_lang,
+            use_online_model, max_retries_slider, max_token_state,
             thread_count_slider, excel_mode_checkbox, word_bilingual_checkbox, glossary_choice, session_lang
         ],
         outputs=[output_file, status_message, stop_button]
@@ -1231,8 +1247,8 @@ with gr.Blocks(
     ).then(
         partial(modified_translate_button_click, translate_files, continue_mode=True),
         inputs=[
-            file_input, model_choice, src_lang, dst_lang, 
-            use_online_model, api_key_input, max_retries_slider, max_token_state,
+            file_input, model_choice, src_lang, dst_lang,
+            use_online_model, max_retries_slider, max_token_state,
             thread_count_slider, excel_mode_checkbox, word_bilingual_checkbox, glossary_choice, session_lang
         ],
         outputs=[output_file, status_message, stop_button]
@@ -1302,7 +1318,7 @@ with gr.Blocks(
             use_online_model, model_choice, glossary_choice, glossary_upload_file, glossary_upload_button,
             src_lang, dst_lang, use_online_model, lan_mode_checkbox,
             model_choice, glossary_choice, max_retries_slider, thread_count_slider,
-            api_key_input, file_input, output_file, status_message, translate_button,
+            file_input, output_file, status_message, translate_button,
             continue_button, excel_mode_checkbox, word_bilingual_checkbox, stop_button, glossary_upload_button
         ]
     )
