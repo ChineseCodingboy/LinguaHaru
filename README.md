@@ -46,7 +46,10 @@ You need to install CUDA (currently 11.7 and 12.1 have been tested without issue
         - [Google Drive](https://drive.google.com/file/d/1STq_eBNHAMzLxvkM5-2fdepa9sCX9WyJ/view?usp=sharing)
 
 
-4. Run the tool
+4. Configure API key (optional)
+    Edit `config/system_config.json` and set your API key under the `api_key` field to avoid entering it every time.
+
+5. Run the tool
     ```bash
     python app.py
     ```
@@ -55,7 +58,7 @@ You need to install CUDA (currently 11.7 and 12.1 have been tested without issue
     http://127.0.0.1:9980
     ```
 
-5. Local large language model support  
+6. Local large language model support
     Currently only supports [Ollama](https://ollama.com/)  
     You need to download Ollama dependencies and models for translation
     - Download model (QWen series models recommended)
